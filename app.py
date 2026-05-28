@@ -1,13 +1,20 @@
+import uuid
 from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
 
-# Default cloud storage data
-saved_text = "Welcome to your global notepad! Type anything here from any phone."
-saved_link = "https://www.google.com"
+# 🔒 YOUR SECRET PIN
+SECRET_PIN = "1234"
 
-# 🔒 YOUR SECRET PIN (Change "Liyakatali#8898" to any password/code you want!)
-SECRET_PIN = "Liyakatali#8898"
+# Upgraded Data Structure: Now it holds a list of multiple sections!
+notes = [
+    {
+        "id": str(uuid.uuid4()),
+        "title": "📌 My First Dashboard Note",
+        "content": "Welcome to your upgraded multi-note dashboard! You can now add, edit, and organize multiple sections.",
+        "link": "https://www.google.com"
+    }
+]
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -18,7 +25,6 @@ HTML_TEMPLATE = """
     <title>My One Web</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* 💡 Clean CSS System Variables for 2026 Light & Dark Layouts */
         :root {
             --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
             --card-bg: #ffffff;
@@ -47,181 +53,44 @@ HTML_TEMPLATE = """
             --shadow: rgba(0, 0, 0, 0.4);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.25s ease, color 0.25s ease; }
 
-        body {
-            background: var(--bg-gradient);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+        body { background: var(--bg-gradient); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; }
 
-        .container {
-            background: var(--card-bg);
-            width: 100%;
-            max-width: 540px;
-            border-radius: 24px;
-            box-shadow: 0 12px 40px var(--shadow), 0 1px 3px rgba(0, 0, 0, 0.02);
-            padding: 32px;
-            border: 1px solid var(--border-color);
-        }
+        .container { background: var(--card-bg); width: 100%; max-width: 600px; border-radius: 24px; box-shadow: 0 12px 40px var(--shadow); padding: 32px; border: 1px solid var(--border-color); }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 28px;
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+        .header h2 { font-size: 24px; color: var(--text-primary); font-weight: 700; }
+        
+        .theme-toggle-btn { background: var(--card-display-bg); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 14px; border-radius: 12px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
-        .header h2 {
-            font-size: 24px;
-            color: var(--text-primary);
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .display-card { background: var(--card-display-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 20px; position: relative; }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+        .card-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+        
+        .action-btns button { background: none; border: none; font-size: 16px; cursor: pointer; margin-left: 10px; opacity: 0.6; transition: 0.2s; }
+        .action-btns button:hover { opacity: 1; transform: scale(1.1); }
 
-        .theme-toggle-btn {
-            background: var(--card-display-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 8px 14px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            box-shadow: 0 2px 4px var(--shadow);
-        }
+        .saved-text { font-size: 15px; color: var(--text-primary); line-height: 1.6; margin-bottom: 14px; white-space: pre-wrap; }
+        .saved-link { font-size: 14px; color: var(--btn-bg); text-decoration: none; font-weight: 500; word-break: break-all; }
+        .saved-link:hover { text-decoration: underline; }
 
-        .theme-toggle-btn:hover {
-            transform: translateY(-1px);
-        }
+        .input-group { margin-bottom: 12px; }
+        input[type="text"], input[type="password"], textarea { width: 100%; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 10px; padding: 12px; font-size: 14px; color: var(--text-primary); outline: none; }
+        textarea { min-height: 80px; resize: vertical; }
+        input:focus, textarea:focus { border-color: var(--btn-bg); }
 
-        .display-card {
-            background: var(--card-display-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 28px;
-        }
+        .btn-submit { width: 100%; background: var(--btn-bg); color: #ffffff; border: none; border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .btn-submit:hover { background: var(--btn-hover); }
+        .btn-cancel { width: 100%; background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; }
 
-        .section-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-secondary);
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
+        .add-section-btn { width: 100%; background: var(--card-display-bg); border: 2px dashed var(--border-color); color: var(--text-primary); padding: 16px; border-radius: 16px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .add-section-btn:hover { border-color: var(--btn-bg); color: var(--btn-bg); }
 
-        .saved-text {
-            font-size: 15px;
-            color: var(--text-primary);
-            line-height: 1.6;
-            margin-bottom: 18px;
-            white-space: pre-wrap;
-        }
-
-        .saved-link-wrapper {
-            border-top: 1px solid var(--border-color);
-            padding-top: 14px;
-        }
-
-        .saved-link {
-            font-size: 14px;
-            color: var(--btn-bg);
-            text-decoration: none;
-            font-weight: 500;
-            word-break: break-all;
-            display: inline-block;
-        }
-
-        .saved-link:hover {
-            text-decoration: underline;
-        }
-
-        .form-title {
-            font-size: 15px;
-            color: var(--text-primary);
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-
-        .input-group {
-            margin-bottom: 16px;
-        }
-
-        textarea, input[type="text"], input[type="password"] {
-            width: 100%;
-            background: var(--input-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 12px;
-            padding: 14px;
-            font-size: 14px;
-            color: var(--text-primary);
-            outline: none;
-        }
-
-        textarea {
-            min-height: 110px;
-            resize: vertical;
-        }
-
-        textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
-            border-color: var(--btn-bg);
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
-        }
-
-        textarea::placeholder, input[type="text"]::placeholder, input[type="password"]::placeholder {
-            color: var(--text-secondary);
-        }
-
-        .btn-submit {
-            width: 100%;
-            background: var(--btn-bg);
-            color: #ffffff;
-            border: none;
-            border-radius: 12px;
-            padding: 14px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
-        }
-
-        .btn-submit:hover {
-            background: var(--btn-hover);
-            transform: translateY(-1px);
-        }
-
-        /* Security Feedback Boxes */
-        .alert {
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .alert-error {
-            background: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-        .alert-success {
-            background: rgba(34, 197, 94, 0.15);
-            color: #22c55e;
-            border: 1px solid rgba(34, 197, 94, 0.2);
-        }
+        .alert { padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 500; margin-bottom: 20px; text-align: center; }
+        .alert-error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .alert-success { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
     </style>
 </head>
 <body>
@@ -232,60 +101,76 @@ HTML_TEMPLATE = """
             <button class="theme-toggle-btn" id="themeToggle" type="button">🌙 Dark Mode</button>
         </div>
 
-        <!-- Displays security processing status message -->
-        {% if error %}
-            <div class="alert alert-error">{{ error }}</div>
-        {% endif %}
-        {% if success %}
-            <div class="alert alert-success">{{ success }}</div>
-        {% endif %}
+        {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+        {% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
 
+        {% for note in notes %}
         <div class="display-card">
-            <div class="section-title">Saved Note</div>
-            <div class="saved-text">{{ saved_text }}</div>
             
-            <div class="saved-link-wrapper">
-                <div class="section-title">Saved Link</div>
-                {% if saved_link and saved_link != 'None' and saved_link != '' %}
-                    <a href="{{ saved_link }}" target="_blank" class="saved-link">{{ saved_link }}</a>
-                {% else %}
-                    <span style="color: var(--text-secondary); font-size: 14px;">No link saved yet</span>
-                {% endif %}
+            <div id="view-{{ note.id }}">
+                <div class="card-header">
+                    <div class="card-title">{{ note.title }}</div>
+                    <div class="action-btns">
+                        <button onclick="toggleEdit('{{ note.id }}')" title="Edit">✏️</button>
+                        <form action="/action" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this section?');">
+                            <input type="hidden" name="action_type" value="delete">
+                            <input type="hidden" name="note_id" value="{{ note.id }}">
+                            <button type="button" onclick="let pin = prompt('Enter PIN to delete:'); if(pin) { this.nextElementSibling.value = pin; this.parentElement.submit(); }" title="Delete">🗑️</button>
+                            <input type="hidden" name="pin_data" value="">
+                        </form>
+                    </div>
+                </div>
+                <div class="saved-text">{{ note.content }}</div>
+                {% if note.link %}<a href="{{ note.link }}" target="_blank" class="saved-link">🔗 {{ note.link }}</a>{% endif %}
             </div>
+
+            <div id="edit-{{ note.id }}" style="display: none;">
+                <form action="/action" method="POST">
+                    <input type="hidden" name="action_type" value="edit">
+                    <input type="hidden" name="note_id" value="{{ note.id }}">
+                    
+                    <div class="input-group"><input type="text" name="title" value="{{ note.title }}" required></div>
+                    <div class="input-group"><textarea name="content">{{ note.content }}</textarea></div>
+                    <div class="input-group"><input type="text" name="link" value="{{ note.link }}"></div>
+                    <div class="input-group"><input type="password" name="pin_data" placeholder="🔑 Enter PIN to Save Edits" required></div>
+                    
+                    <button type="submit" class="btn-submit">Save Changes</button>
+                    <button type="button" class="btn-cancel" onclick="toggleEdit('{{ note.id }}')">Cancel</button>
+                </form>
+            </div>
+            
+        </div>
+        {% endfor %}
+
+        <button class="add-section-btn" id="addBtn" onclick="document.getElementById('addFormContainer').style.display='block'; this.style.display='none';">
+            ➕ Add New Section
+        </button>
+
+        <div id="addFormContainer" class="display-card" style="display: none;">
+            <div class="card-title" style="margin-bottom: 15px;">Create New Section</div>
+            <form action="/action" method="POST">
+                <input type="hidden" name="action_type" value="add">
+                <div class="input-group"><input type="text" name="title" placeholder="Section Heading (e.g. Work Links)" required></div>
+                <div class="input-group"><textarea name="content" placeholder="Type your notes here..."></textarea></div>
+                <div class="input-group"><input type="text" name="link" placeholder="Paste a web link here..."></div>
+                <div class="input-group"><input type="password" name="pin_data" placeholder="🔑 Enter PIN to Add" required></div>
+                
+                <button type="submit" class="btn-submit">Add to Dashboard</button>
+                <button type="button" class="btn-cancel" onclick="document.getElementById('addFormContainer').style.display='none'; document.getElementById('addBtn').style.display='flex';">Cancel</button>
+            </form>
         </div>
 
-        <form action="/save" method="POST">
-            <div class="form-title">Update Dashboard Data</div>
-            
-            <div class="input-group">
-                <textarea name="text_data" placeholder="Type your new note here..."></textarea>
-            </div>
-            
-            <div class="input-group">
-                <input type="text" name="link_data" placeholder="Paste a web link here...">
-            </div>
-
-            <!-- 🔒 Password Input Field Added -->
-            <div class="input-group">
-                <input type="password" name="pin_data" placeholder="🔑 Enter Secret PIN to lock update" required>
-            </div>
-            
-            <button type="submit" class="btn-submit">Save to Cloud</button>
-        </form>
     </div>
 
     <script>
+        // Dark Mode Logic
         const themeToggleBtn = document.getElementById('themeToggle');
-        
-        // Checks Device LocalStorage memory to preserve theme layout configuration
         if (localStorage.getItem('theme') === 'dark') {
             document.body.classList.add('dark');
             themeToggleBtn.innerHTML = '☀️ Light Mode';
         }
-
         themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark');
-            
             if (document.body.classList.contains('dark')) {
                 localStorage.setItem('theme', 'dark');
                 themeToggleBtn.innerHTML = '☀️ Light Mode';
@@ -294,6 +179,19 @@ HTML_TEMPLATE = """
                 themeToggleBtn.innerHTML = '🌙 Dark Mode';
             }
         });
+
+        // Toggle Edit Mode Logic
+        function toggleEdit(id) {
+            const viewDiv = document.getElementById('view-' + id);
+            const editDiv = document.getElementById('edit-' + id);
+            if (viewDiv.style.display === 'none') {
+                viewDiv.style.display = 'block';
+                editDiv.style.display = 'none';
+            } else {
+                viewDiv.style.display = 'none';
+                editDiv.style.display = 'block';
+            }
+        }
     </script>
 </body>
 </html>
@@ -301,20 +199,48 @@ HTML_TEMPLATE = """
 
 @app.route('/')
 def index():
-    return render_template_string(HTML_TEMPLATE, saved_text=saved_text, saved_link=saved_link, error="", success="")
+    return render_template_string(HTML_TEMPLATE, notes=notes, error="", success="")
 
-@app.route('/save', methods=['POST'])
-def save():
-    global saved_text, saved_link
-    user_pin = request.form.get('pin_data', '')
+# 🚀 One Master Engine Route to handle Adding, Editing, and Deleting!
+@app.route('/action', methods=['POST'])
+def handle_action():
+    global notes
+    pin = request.form.get('pin_data')
     
-    # 🔐 Security Checkpoint: Validates user input request before updating live stream database variables
-    if user_pin == SECRET_PIN:
-        saved_text = request.form.get('text_data', '')
-        saved_link = request.form.get('link_data', '')
-        return render_template_string(HTML_TEMPLATE, saved_text=saved_text, saved_link=saved_link, error="", success="✨ Data successfully saved to the cloud!")
-    else:
-        return render_template_string(HTML_TEMPLATE, saved_text=saved_text, saved_link=saved_link, error="❌ Incorrect PIN! Update rejected.", success="")
+    # Check security PIN first
+    if pin != SECRET_PIN:
+        return render_template_string(HTML_TEMPLATE, notes=notes, error="❌ Incorrect PIN! Action denied.", success="")
+
+    action = request.form.get('action_type')
+
+    # ADD A NEW NOTE
+    if action == 'add':
+        new_note = {
+            "id": str(uuid.uuid4()),
+            "title": request.form.get('title', 'Untitled Section'),
+            "content": request.form.get('content', ''),
+            "link": request.form.get('link', '')
+        }
+        notes.append(new_note)
+        return render_template_string(HTML_TEMPLATE, notes=notes, success="✨ New section added successfully!")
+
+    # EDIT AN EXISTING NOTE
+    elif action == 'edit':
+        note_id = request.form.get('note_id')
+        for note in notes:
+            if note['id'] == note_id:
+                note['title'] = request.form.get('title')
+                note['content'] = request.form.get('content')
+                note['link'] = request.form.get('link')
+        return render_template_string(HTML_TEMPLATE, notes=notes, success="✨ Section updated!")
+
+    # DELETE A NOTE
+    elif action == 'delete':
+        note_id = request.form.get('note_id')
+        notes = [n for n in notes if n['id'] != note_id]
+        return render_template_string(HTML_TEMPLATE, notes=notes, success="🗑️ Section deleted!")
+
+    return render_template_string(HTML_TEMPLATE, notes=notes)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
