@@ -28,7 +28,7 @@ HTML_PAGE = """
 </head>
 <body>
     <div class="container">
-        <h2>🌐 My Global Cloud Notepad</h2>
+        <h2>🌐 My One Web</h2>
         
         <div class="box">
             <strong>Saved Text:</strong><p>{{ data['text'] }}</p>
