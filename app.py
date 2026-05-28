@@ -1,20 +1,56 @@
 import uuid
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, session, redirect, url_for
 
 app = Flask(__name__)
+# Secure secret key required for handling login sessions safely
+app.secret_key = "super_secret_workspace_key_99"
 
-# 🔒 YOUR SECRET PIN
-SECRET_PIN = "1234"
+# 🔒 YOUR MASTER PASSWORD (Change "1234" to whatever you want)
+MASTER_PIN = "1234"
 
-# Upgraded Data Structure: Now it holds a list of multiple sections!
+# Workspace Data Storage
 notes = [
     {
         "id": str(uuid.uuid4()),
-        "title": "📌 My First Dashboard Note",
-        "content": "Welcome to your upgraded multi-note dashboard! You can now add, edit, and organize multiple sections.",
+        "title": "📌 Welcome Note",
+        "content": "This is your password-locked workspace! Now you can manage everything freely without typing your PIN for every single action.",
         "link": "https://www.google.com"
     }
 ]
+
+LOGIN_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lockbox Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; padding: 20px; }
+        .login-card { background: #1e293b; width: 100%; max-width: 400px; padding: 40px 32px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 1px solid #334155; text-align: center; }
+        h2 { color: #f8fafc; font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+        p { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+        input[type="password"] { width: 100%; background: #0f172a; border: 1px solid #475569; border-radius: 12px; padding: 14px; font-size: 16px; color: #f8fafc; outline: none; text-align: center; letter-spacing: 4px; transition: 0.2s; margin-bottom: 16px; }
+        input[type="password"]:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
+        .btn-login { width: 100%; background: #6366f1; color: #ffffff; border: none; border-radius: 12px; padding: 14px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-login:hover { background: #4f46e5; }
+        .alert { background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 500; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>🔒 Workspace Locked</h2>
+        <p>Please enter your master security PIN to access your workspace dashboard.</p>
+        {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+        <form action="/login" method="POST">
+            <input type="password" name="pin" placeholder="••••" autocomplete="off" autofocus required>
+            <button type="submit" class="btn-login">Unlock Dashboard</button>
+        </form>
+    </div>
+</body>
+</html>
+"""
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -22,7 +58,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My One Web</title>
+    <title>My Smart Workspace</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -62,7 +98,10 @@ HTML_TEMPLATE = """
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
         .header h2 { font-size: 24px; color: var(--text-primary); font-weight: 700; }
         
-        .theme-toggle-btn { background: var(--card-display-bg); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 14px; border-radius: 12px; cursor: pointer; font-size: 13px; font-weight: 600; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .theme-toggle-btn, .logout-btn { background: var(--card-display-bg); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 14px; border-radius: 12px; cursor: pointer; font-size: 13px; font-weight: 600; text-decoration: none; }
+        .logout-btn { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+        .logout-btn:hover { background: #ef4444; color: #fff; }
 
         .display-card { background: var(--card-display-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 20px; position: relative; }
         
@@ -77,7 +116,7 @@ HTML_TEMPLATE = """
         .saved-link:hover { text-decoration: underline; }
 
         .input-group { margin-bottom: 12px; }
-        input[type="text"], input[type="password"], textarea { width: 100%; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 10px; padding: 12px; font-size: 14px; color: var(--text-primary); outline: none; }
+        input[type="text"], textarea { width: 100%; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 10px; padding: 12px; font-size: 14px; color: var(--text-primary); outline: none; }
         textarea { min-height: 80px; resize: vertical; }
         input:focus, textarea:focus { border-color: var(--btn-bg); }
 
@@ -97,8 +136,11 @@ HTML_TEMPLATE = """
 
     <div class="container">
         <div class="header">
-            <h2>🌐 My One Web</h2>
-            <button class="theme-toggle-btn" id="themeToggle" type="button">🌙 Dark Mode</button>
+            <h2>🌐 Workspace</h2>
+            <div class="header-actions">
+                <button class="theme-toggle-btn" id="themeToggle" type="button">🌙 Dark Mode</button>
+                <a href="/logout" class="logout-btn">🔒 Lock</a>
+            </div>
         </div>
 
         {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
@@ -111,12 +153,11 @@ HTML_TEMPLATE = """
                 <div class="card-header">
                     <div class="card-title">{{ note.title }}</div>
                     <div class="action-btns">
-                        <button onclick="toggleEdit('{{ note.id }}')" title="Edit">✏️</button>
-                        <form action="/action" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this section?');">
+                        <button onclick="toggleEdit('{{ note.id }}')" title="Edit Layout">✏️</button>
+                        <form action="/action" method="POST" style="display:inline;">
                             <input type="hidden" name="action_type" value="delete">
                             <input type="hidden" name="note_id" value="{{ note.id }}">
-                            <button type="button" onclick="let pin = prompt('Enter PIN to delete:'); if(pin) { this.nextElementSibling.value = pin; this.parentElement.submit(); }" title="Delete">🗑️</button>
-                            <input type="hidden" name="pin_data" value="">
+                            <button type="submit" onclick="return confirm('Are you sure you want to delete this section?')" title="Delete Layout">🗑️</button>
                         </form>
                     </div>
                 </div>
@@ -132,7 +173,6 @@ HTML_TEMPLATE = """
                     <div class="input-group"><input type="text" name="title" value="{{ note.title }}" required></div>
                     <div class="input-group"><textarea name="content">{{ note.content }}</textarea></div>
                     <div class="input-group"><input type="text" name="link" value="{{ note.link }}"></div>
-                    <div class="input-group"><input type="password" name="pin_data" placeholder="🔑 Enter PIN to Save Edits" required></div>
                     
                     <button type="submit" class="btn-submit">Save Changes</button>
                     <button type="button" class="btn-cancel" onclick="toggleEdit('{{ note.id }}')">Cancel</button>
@@ -150,10 +190,9 @@ HTML_TEMPLATE = """
             <div class="card-title" style="margin-bottom: 15px;">Create New Section</div>
             <form action="/action" method="POST">
                 <input type="hidden" name="action_type" value="add">
-                <div class="input-group"><input type="text" name="title" placeholder="Section Heading (e.g. Work Links)" required></div>
-                <div class="input-group"><textarea name="content" placeholder="Type your notes here..."></textarea></div>
-                <div class="input-group"><input type="text" name="link" placeholder="Paste a web link here..."></div>
-                <div class="input-group"><input type="password" name="pin_data" placeholder="🔑 Enter PIN to Add" required></div>
+                <div class="input-group"><input type="text" name="title" placeholder="Heading (e.g. Work Links)" required></div>
+                <div class="input-group"><textarea name="content" placeholder="Type data here..."></textarea></div>
+                <div class="input-group"><input type="text" name="link" placeholder="Paste web link here..."></div>
                 
                 <button type="submit" class="btn-submit">Add to Dashboard</button>
                 <button type="button" class="btn-cancel" onclick="document.getElementById('addFormContainer').style.display='none'; document.getElementById('addBtn').style.display='flex';">Cancel</button>
@@ -163,7 +202,7 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
-        // Dark Mode Logic
+        // Dark mode memory preservation engine configuration
         const themeToggleBtn = document.getElementById('themeToggle');
         if (localStorage.getItem('theme') === 'dark') {
             document.body.classList.add('dark');
@@ -180,7 +219,6 @@ HTML_TEMPLATE = """
             }
         });
 
-        // Toggle Edit Mode Logic
         function toggleEdit(id) {
             const viewDiv = document.getElementById('view-' + id);
             const editDiv = document.getElementById('edit-' + id);
@@ -199,21 +237,31 @@ HTML_TEMPLATE = """
 
 @app.route('/')
 def index():
+    if not session.get('authenticated'):
+        return render_template_string(LOGIN_TEMPLATE, error="")
     return render_template_string(HTML_TEMPLATE, notes=notes, error="", success="")
 
-# 🚀 One Master Engine Route to handle Adding, Editing, and Deleting!
+@app.route('/login', methods=['POST'])
+def login():
+    pin = request.form.get('pin')
+    if pin == MASTER_PIN:
+        session['authenticated'] = True
+        return redirect(url_for('index'))
+    return render_template_string(LOGIN_TEMPLATE, error="❌ Invalid PIN. Please try again.")
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
 @app.route('/action', methods=['POST'])
 def handle_action():
     global notes
-    pin = request.form.get('pin_data')
-    
-    # Check security PIN first
-    if pin != SECRET_PIN:
-        return render_template_string(HTML_TEMPLATE, notes=notes, error="❌ Incorrect PIN! Action denied.", success="")
+    if not session.get('authenticated'):
+        return redirect(url_for('index'))
 
     action = request.form.get('action_type')
 
-    # ADD A NEW NOTE
     if action == 'add':
         new_note = {
             "id": str(uuid.uuid4()),
@@ -224,7 +272,6 @@ def handle_action():
         notes.append(new_note)
         return render_template_string(HTML_TEMPLATE, notes=notes, success="✨ New section added successfully!")
 
-    # EDIT AN EXISTING NOTE
     elif action == 'edit':
         note_id = request.form.get('note_id')
         for note in notes:
@@ -234,7 +281,6 @@ def handle_action():
                 note['link'] = request.form.get('link')
         return render_template_string(HTML_TEMPLATE, notes=notes, success="✨ Section updated!")
 
-    # DELETE A NOTE
     elif action == 'delete':
         note_id = request.form.get('note_id')
         notes = [n for n in notes if n['id'] != note_id]
