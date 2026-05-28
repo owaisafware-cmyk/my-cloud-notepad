@@ -5,8 +5,8 @@ app = Flask(__name__)
 # Secure secret key required for handling login sessions safely
 app.secret_key = "super_secret_workspace_key_99"
 
-# 🔒 YOUR MASTER PASSWORD (Change "1234" to whatever you want)
-MASTER_PIN = "1234"
+# 🔒 YOUR MASTER PASSWORD (Change "Liyakatali#8898" to whatever you want)
+MASTER_PIN = "Liyakatali#8898"
 
 # Workspace Data Storage
 notes = [
