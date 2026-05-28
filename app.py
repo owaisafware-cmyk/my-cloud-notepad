@@ -6,8 +6,8 @@ app = Flask(__name__)
 saved_text = "Welcome to your global notepad! Type anything here from any phone."
 saved_link = "https://www.google.com"
 
-# 🔒 YOUR SECRET PIN (Change "1234" to any password/code you want!)
-SECRET_PIN = "1234"
+# 🔒 YOUR SECRET PIN (Change "Liyakatali#8898" to any password/code you want!)
+SECRET_PIN = "Liyakatali#8898"
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
